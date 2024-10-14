@@ -1,0 +1,9 @@
+[package]
+name = "a2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+walkdir = "2.3"
+colored = "2.0"
+regex = "1"
