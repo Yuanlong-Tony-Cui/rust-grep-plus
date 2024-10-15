@@ -12,7 +12,7 @@ use regex::Regex;
 #[derive(Debug)]
 struct Config {
     query_str: String,
-    files: Vec<String>,
+    target_files: Vec<String>,
     case_insensitive: bool,
     print_line_numbers: bool,
     invert_match: bool,
@@ -31,13 +31,14 @@ impl Config {
             return Err("not enough arguments");
         }
 
-        for (idx, arg) in args.iter().enumerate() {
-            println!("arg[{}]: {}", idx, arg);
-        }
+        // // Print command line arguments:
+        // for (idx, arg) in args.iter().enumerate() {
+        //     println!("arg[{}]: {}", idx, arg);
+        // }
 
         let mut config = Config {
             query_str: args[1].clone(),
-            files: Vec::new(),
+            target_files: Vec::new(),
             case_insensitive: false,
             print_line_numbers: false,
             invert_match: false,
@@ -59,11 +60,11 @@ impl Config {
                     print_help_info();
                     process::exit(0);
                 }
-                _ => config.files.push(arg.clone()),
+                _ => config.target_files.push(arg.clone())
             }
         }
 
-        if config.files.is_empty() {
+        if config.target_files.is_empty() {
             return Err("No files provided.");
         }
 
@@ -113,9 +114,9 @@ fn execute(config: Config) -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let target_files = if config.recursive_search {
-        collect_files_recursively(&config.files)?
+        collect_files_recursively(&config.target_files)?
     } else {
-        config.files.clone()
+        config.target_files.clone()
     };
 
     for target_file in target_files {
@@ -181,7 +182,7 @@ fn print_match(line_idx: usize, line: &str, filename: &str, config: &Config) {
             ).unwrap();
             regex_pattern.replace_all(line, |caps: &regex::Captures| {
                 caps[0].red().to_string()
-            }).to_string()
+            }).to_string() // uses a closure
         } else {
             // Highlight exact matches only:
             line.replace(&config.query_str, &config.query_str.red().to_string())
@@ -192,7 +193,7 @@ fn print_match(line_idx: usize, line: &str, filename: &str, config: &Config) {
 
     if config.print_filenames && config.print_line_numbers {
         // Print both filename and line number:
-        println!("{}:{}: {}", filename, line_idx + 1, formatted_line);
+        println!("{}: {}: {}", filename, line_idx + 1, formatted_line);
     } else if config.print_filenames {
         // Print filename only:
         println!("{}: {}", filename, formatted_line);
