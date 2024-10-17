@@ -59,10 +59,17 @@ impl Config {
                 "-h" | "--help" => {
                     print_help_info();
                     process::exit(0);
-                }
+                },
+                // Any other arguments will be treated as files / directories:
                 _ => config.target_files.push(arg.clone())
             }
         }
+        /*
+            NOTE: When the user uses wildcard characters in the filename such
+            as "*.md", the shell will first expand the "*.md" into individual filenames.
+            Therefore, what the Rust program actually receives as its command-line
+            arguments is the expanded list of filenames.
+        */
 
         if config.target_files.is_empty() {
             return Err("No files provided.");
@@ -150,9 +157,9 @@ fn search_in_file(
     filename: &str, query_str: &str, config: &Config
 ) -> Result<(), Box<dyn std::error::Error>> {
     let file = fs::File::open(filename)?;
-
-    // Use 
     let reader = io::BufReader::new(file);
+
+    // Look for matches line by line and print as needed:
     for (idx, line) in reader.lines().enumerate() {
         let line = line?;
         let matched = if config.case_insensitive {
