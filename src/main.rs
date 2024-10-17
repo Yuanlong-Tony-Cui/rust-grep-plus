@@ -31,10 +31,12 @@ impl Config {
             return Err("not enough arguments");
         }
 
-        // // Print command line arguments:
-        // for (idx, arg) in args.iter().enumerate() {
-        //     println!("arg[{}]: {}", idx, arg);
-        // }
+        /*
+        // Print command line arguments:
+        for (idx, arg) in args.iter().enumerate() {
+            println!("arg[{}]: {}", idx, arg);
+        }
+        */
 
         let mut config = Config {
             query_str: args[1].clone(),
@@ -58,7 +60,7 @@ impl Config {
                 "-c" => config.colored_output = true,
                 "-h" | "--help" => {
                     print_help_info();
-                    process::exit(0);
+                    process::exit(0); // exits right away
                 },
                 // Any other arguments will be treated as files / directories:
                 _ => config.target_files.push(arg.clone())
@@ -74,6 +76,13 @@ impl Config {
         if config.target_files.is_empty() {
             return Err("No files provided.");
         }
+
+        /*
+        // Verify that the shell indeed resolves "*.md" for us:
+        for (idx, file) in config.target_files.iter().enumerate() {
+            println!("config.target_files[{}]: {}", idx, file);
+        }
+        */
 
         Ok(config)
     }
@@ -120,6 +129,7 @@ fn execute(config: Config) -> Result<(), Box<dyn std::error::Error>> {
         config.query_str.clone()
     };
 
+    // ASSUMPTION: If "-r" is not used, we simply treat it as a file:
     let target_files = if config.recursive_search {
         collect_files_recursively(&config.target_files)?
     } else {
@@ -156,22 +166,27 @@ fn collect_files_recursively(paths: &[String]) -> Result<Vec<String>, io::Error>
 fn search_in_file(
     filename: &str, query_str: &str, config: &Config
 ) -> Result<(), Box<dyn std::error::Error>> {
+    /*
+        We use the `?` operator to match the `Result` with `Ok()` and `Err()`.
+        https://doc.rust-lang.org/rust-by-example/std/result/question_mark.html
+        If the "-r" flag is not used, we may end up opening a directory.
+    */
     let file = fs::File::open(filename)?;
     let reader = io::BufReader::new(file);
 
     // Look for matches line by line and print as needed:
     for (idx, line) in reader.lines().enumerate() {
-        let line = line?;
+        let line_result = line?; // propagates errors
+
         let matched = if config.case_insensitive {
-            line.to_lowercase().contains(query_str)
+            line_result.to_lowercase().contains(query_str)
         } else {
-            line.contains(query_str)
+            line_result.contains(query_str)
         };
 
         let should_print = if config.invert_match { !matched } else { matched };
-
         if should_print {
-            print_match(idx, &line, filename, config);
+            print_match(idx, &line_result, filename, config);
         }
     }
 
